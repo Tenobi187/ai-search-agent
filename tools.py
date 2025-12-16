@@ -7,6 +7,7 @@ from config import SERPER_API_KEY
 def web_search(query: str) -> str:
     """
     Поиск информации в интернете.
+    Возвращает текст + URL.
     """
     response = requests.post(
         "https://google.serper.dev/search",
@@ -24,8 +25,11 @@ def web_search(query: str) -> str:
     results = []
 
     for item in data.get("organic", [])[:5]:
-        results.append(
-            f"{item.get('title')}\n{item.get('snippet')}"
-        )
+        title = item.get("title", "")
+        snippet = item.get("snippet", "")
+        link = item.get("link", "")
+
+        if link:
+            results.append(f"{title}\n{snippet}\nURL: {link}")
 
     return "\n\n".join(results) or "Ничего не найдено."

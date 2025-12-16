@@ -4,7 +4,5 @@ from typing import List
 
 class ResearchReport(BaseModel):
     topic: str
-    introduction: str
-    key_findings: List[str]
-    conclusion: str
+    answer: str
     sources: List[str]

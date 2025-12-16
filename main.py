@@ -11,7 +11,6 @@ from schemas import ResearchReport
 app = FastAPI()
 agent = create_agent()
 
-# Статика
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -22,41 +21,46 @@ async def index():
 
 
 def report_to_markdown(report: ResearchReport) -> str:
-    md = f"# {report.topic}\n\n"
-
-    md += f"## Введение\n{report.introduction}\n\n"
-
-    md += "## Ключевые факты\n"
-    for item in report.key_findings:
-        md += f"- {item}\n"
-
-    md += f"\n## Заключение\n{report.conclusion}\n\n"
+    md = "### Ответ\n\n"
+    md += report.answer.strip() + "\n\n"
 
     if report.sources:
-        md += "## Источники\n"
+        md += "### Источники\n"
         for src in report.sources:
-            md += f"- {src}\n"
+            md += f'- <a href="{src}" target="_blank" rel="noopener noreferrer">{src}</a>\n'
 
     return md
+
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
+    chat_history = []
 
     try:
         while True:
             question = await ws.receive_text()
 
-            report = agent.invoke(question)
-            answer_md = report_to_markdown(report)
+            report = agent.invoke({
+                "question": question,
+                "history": chat_history
+            })
+
+           
+            chat_history.append({
+                "question": question,
+                "answer": report.answer
+            })
 
             await ws.send_text(json.dumps({
-                "content": answer_md
+                "content": report_to_markdown(report)
             }))
 
-    except:
-        pass
+    except Exception as e:
+        await ws.send_text(json.dumps({
+            "content": f"Ошибка: {e}"
+        }))
 
 
 if __name__ == "__main__":
